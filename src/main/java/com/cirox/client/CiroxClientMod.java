@@ -1,11 +1,11 @@
 package com.cirox.client;
 
-import com.cirox.client.module.Module;
 import com.cirox.client.module.*;
 import com.cirox.client.ui.CiroxClientScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -55,6 +55,25 @@ public class CiroxClientMod implements ClientModInitializer {
             }
 
             moduleManager.onTick();
+        });
+
+        // HUD Render Callback (Arriba a la derecha)
+        HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
+            HUDModule hud = moduleManager.getModule(HUDModule.class);
+            if (hud != null && hud.isEnabled() && net.minecraft.client.MinecraftClient.getInstance().options.hudHidden == false) {
+                int x = drawContext.getScaledWindowWidth() - 4;
+                int y = 4;
+                int index = 0;
+                for (Module m : moduleManager.getModules()) {
+                    if (m.isEnabled()) {
+                        String text = m.getName();
+                        int textWidth = net.minecraft.client.MinecraftClient.getInstance().textRenderer.getWidth(text);
+                        drawContext.fill(x - textWidth - 4, y + (index * 12) - 2, x + 2, y + (index * 12) + 10, 0x75000000);
+                        drawContext.drawTextWithShadow(net.minecraft.client.MinecraftClient.getInstance().textRenderer, text, x - textWidth, y + (index * 12), 0xFF55FF55);
+                        index++;
+                    }
+                }
+            }
         });
     }
 
