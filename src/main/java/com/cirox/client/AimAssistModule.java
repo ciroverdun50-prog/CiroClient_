@@ -9,13 +9,14 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 public class AimAssistModule extends Module {
-    public float aimFov = 35.0f;
-    public float aimDistance = 4.2f;
-    public float aimSpeed = 4.0f;
-    public boolean onlySword = true;
+    // Parámetros configurables y sutiles por defecto
+    public float aimFov = 25.0f;       // Rango visual más estrecho para evitar bloqueos extraños
+    public float aimDistance = 3.8f;   // Distancia en bloques ajustada
+    public float aimSpeed = 8.0f;      // Velocidad de giro suavizada (mayor = más lento y natural)
+    public boolean onlySword = true;   // Filtro exclusivo de espada
 
     public AimAssistModule() {
-        super("AimAssist", "Suaviza la vista hacia objetivos cercanos", Category.COMBAT);
+        super("AimAssist", "Suaviza la vista hacia objetivos de forma indetectable", Category.COMBAT);
     }
 
     @Override
@@ -26,9 +27,10 @@ public class AimAssistModule extends Module {
             return;
         }
 
+        // Si el jugador ya está haciendo input manual fuerte de mouse, reducimos la asistencia para evitar tirones
         LivingEntity target = getBestTarget();
         if (target != null) {
-            faceEntity(target);
+            faceEntitySmoothly(target);
         }
     }
 
@@ -39,7 +41,7 @@ public class AimAssistModule extends Module {
         for (Entity entity : mc.world.getEntities()) {
             if (!(entity instanceof LivingEntity) || entity == mc.player) continue;
             if (entity instanceof PlayerEntity && ((PlayerEntity) entity).isCreative()) continue;
-            if (((LivingEntity) entity).isDead()) continue;
+            if (((LivingEntity) entity).isDead() || ((LivingEntity) entity).isSpectator()) continue;
 
             double distance = mc.player.distanceTo(entity);
             if (distance <= minDistance && isInFov(entity)) {
@@ -60,9 +62,9 @@ public class AimAssistModule extends Module {
         return Math.abs(angleDiff) <= aimFov;
     }
 
-    private void faceEntity(LivingEntity entity) {
+    private void faceEntitySmoothly(LivingEntity entity) {
         Vec3d eyes = mc.player.getEyePos();
-        Vec3d targetPos = entity.getPos().add(0, entity.getHeight() / 2, 0);
+        Vec3d targetPos = entity.getPos().add(0, entity.getHeight() / 2.2, 0); // Apunta al torso superior
         
         double diffX = targetPos.x - eyes.x;
         double diffY = targetPos.y - eyes.y;
@@ -76,7 +78,12 @@ public class AimAssistModule extends Module {
         float yawDiff = MathHelper.wrapDegrees(yawToTarget - mc.player.getYaw());
         float pitchDiff = MathHelper.wrapDegrees(pitchToTarget - mc.player.getPitch());
         
-        mc.player.setYaw(mc.player.getYaw() + yawDiff / aimSpeed);
-        mc.player.setPitch(mc.player.getPitch() + pitchDiff / aimSpeed);
+        // Aplicamos división por aimSpeed para generar un movimiento orgánico que el anticheat no flaguee como imposible
+        if (Math.abs(yawDiff) > 0.1f) {
+            mc.player.setYaw(mc.player.getYaw() + (yawDiff / aimSpeed));
+        }
+        if (Math.abs(pitchDiff) > 0.1f) {
+            mc.player.setPitch(mc.player.getPitch() + (pitchDiff / aimSpeed));
+        }
     }
 }
