@@ -7,6 +7,7 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,21 +27,18 @@ public class WorldRendererMixin {
             Vec3d cameraPos = camera.getPos();
 
             for (PlayerEntity player : mc.world.getPlayers()) {
-                if (player == mc.player || player.isDead()) continue;
+                if (player == mc.player || player.isDead() || player.isSpectator()) continue;
 
-                double x = MathHelper.lerp(tickDelta, player.lastRenderX, player.getX()) - cameraPos.x;
-                double y = MathHelper.lerp(tickDelta, player.lastRenderY, player.getY()) - cameraPos.y;
-                double z = MathHelper.lerp(tickDelta, player.lastRenderZ, player.getZ()) - cameraPos.z;
+                double x = MathHelper.lerp((double)tickDelta, player.lastRenderX, player.getX()) - cameraPos.x;
+                double y = MathHelper.lerp((double)tickDelta, player.lastRenderY, player.getY()) - cameraPos.y;
+                double z = MathHelper.lerp((double)tickDelta, player.lastRenderZ, player.getZ()) - cameraPos.z;
 
                 Box box = player.getBoundingBox().offset(-player.getX(), -player.getY(), -player.getZ()).offset(x, y, z);
                 
-                // Dibujar caja semi-transparente
-                renderBoxOutline(matrices, box, 0.2f, 0.6f, 1.0f, 0.8f);
+                // Renderizado de la caja de contorno para el ESP de jugadores
+                VertexConsumerProvider.Immediate immediate = mc.getBufferBuilders().getEntityVertexConsumers();
+                WorldRenderer.drawBox(matrices, immediate.getBuffer(RenderLayer.getLines()), box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, 0.2f, 0.6f, 1.0f, 0.8f);
             }
         }
-    }
-
-    private void renderBoxOutline(MatrixStack matrices, Box box, float r, float g, float b, float a) {
-        // Implementación básica de bordes 3D utilizando MatrixStack
     }
 }
