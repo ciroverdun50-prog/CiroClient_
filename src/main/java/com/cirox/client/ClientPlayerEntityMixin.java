@@ -1,4 +1,4 @@
-package com.ciroxz.client.mixin;
+package com.cirox.client.mixin;
 
 import com.ciroxz.client.CiroxzClientMod;
 import net.minecraft.client.network.ClientPlayerEntity;
