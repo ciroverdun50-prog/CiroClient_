@@ -7,7 +7,7 @@
   "authors": ["Ciro"],
   "environment": "client",
   "entrypoints": {
-    "client": ["com.cirox.client.CiroxzClientMod"]
+    "client": ["com.cirox.client.CiroxClientMod"]
   },
   "depends": {
     "fabricloader": ">=0.14.21",
