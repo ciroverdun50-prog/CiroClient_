@@ -1,6 +1,6 @@
 package com.cirox.client.module;
 
-import com.cirox.client.module.impl.AimAssistModule;
+import com.cirox.client.module.impl.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +9,10 @@ public class ModuleManager {
 
     public ModuleManager() {
         modules.add(new AimAssistModule());
+        modules.add(new TriggerbotModule());
+        modules.add(new HitboxModule());
+        modules.add(new JumpResetModule());
+        modules.add(new PlayerESPModule()); // <-- Registrado correctamente aquí
     }
 
     public List<Module> getModules() {
