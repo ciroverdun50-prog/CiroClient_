@@ -7,16 +7,14 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
-public class CiroxzClientMod implements ClientModInitializer {
+public class CiroxClientMod implements ClientModInitializer {
     private static KeyBinding openGuiKey;
 
-    // Estados globales reales leídos por los Mixins del juego
     public static boolean aimAssistActive = false;
     public static boolean triggerbotActive = false;
     public static boolean jumpResetActive = false;
     public static boolean hitboxActive = false;
 
-    // Configuraciones ajustables en tiempo real
     public static float aimFov = 35.0f;
     public static float aimSpeed = 3.0f;
     public static int triggerCps = 10;
@@ -26,16 +24,16 @@ public class CiroxzClientMod implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         openGuiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.ciroxzclient.open_gui",
+                "key.ciroxclient.open_gui",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
-                "category.ciroxzclient.title"
+                "category.ciroxclient.title"
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openGuiKey.wasPressed()) {
                 if (client.currentScreen == null) {
-                    client.setScreen(new CiroxzClientScreen());
+                    client.setScreen(new CiroxClientScreen());
                 }
             }
         });
