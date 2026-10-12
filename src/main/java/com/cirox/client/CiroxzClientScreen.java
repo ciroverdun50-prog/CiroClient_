@@ -1,4 +1,4 @@
-package com.ciroxz.client;
+package com.cirox.client;
 
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
