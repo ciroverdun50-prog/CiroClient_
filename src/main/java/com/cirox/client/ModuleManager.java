@@ -1,5 +1,6 @@
 package com.cirox.client;
 
+import com.cirox.client.module.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class ModuleManager {
         return modules;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Module> T getModule(Class<T> clazz) {
         for (Module m : modules) {
             if (clazz.isAssignableFrom(m.getClass())) {
