@@ -23,7 +23,7 @@ public class ClientPlayerEntityMixin {
             
             double targetYaw = player.getYaw();
             float speed = CiroxClientMod.aimSpeed;
-            double noise = ThreadLocalRandom.current().nextGaussian() * 0.15;
+            double noise = ThreadLocalRandom.current().nextGaussian() * 0.12;
 
             float currentYaw = player.getYaw();
             float yawDiff = (float) (targetYaw - currentYaw);
