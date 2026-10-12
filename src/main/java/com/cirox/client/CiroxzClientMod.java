@@ -21,13 +21,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class CiroxzClientMod implements ClientModInitializer {
 private static KeyBinding openGuiKey;
 
-// Estados reales ejecutados en el bucle del cliente de Minecraft
 public static boolean aimAssistActive = false;
 public static boolean triggerbotActive = false;
 public static boolean jumpResetActive = false;
 public static boolean hitboxActive = false;
 
-// Configuraciones persistentes
 public static final Map<String, Map<String, Object>> configurations = new HashMap<>();
 
 @Override
@@ -41,7 +39,6 @@ public void onInitializeClient() {
 
     initConfigs();
 
-    // Lógica de ejecución en cada tick del cliente (Evita flags de Swing / No-Swing / No-Packet)
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
         while (openGuiKey.wasPressed()) {
             if (client.currentScreen == null) {
@@ -51,17 +48,15 @@ public void onInitializeClient() {
 
         if (client.player == null || client.world == null) return;
 
-        // 1. Triggerbot Real: Verifica raycast, simula delay humano y realiza swing legítimo del cliente
         if (triggerbotActive && client.crosshairTarget != null && client.crosshairTarget.getType() == HitResult.Type.ENTITY) {
             EntityHitResult entityHit = (EntityHitResult) client.crosshairTarget;
             int cps = (int) configurations.get("Triggerbot").get("CPS");
             if (evaluateTriggerbotTick(cps)) {
                 client.interactionManager.attackEntity(client.player, entityHit.getEntity());
-                client.player.swingHand(client.player.getActiveHand()); // Envía el paquete de swing obligatorio para prevenir alertas de Killaura/NoSwing
+                client.player.swingHand(client.player.getActiveHand());
             }
         }
 
-        // 2. Jump Reset / W-Tap Real: Simula la liberación de la tecla W al recibir daño para mitigar retroceso (Velocity)
         if (jumpResetActive && client.player.hurtTime > 0) {
             int chance = (int) configurations.get("JumpReset").get("Chance");
             if (ThreadLocalRandom.current().nextInt(100) < chance) {
@@ -94,7 +89,7 @@ private static long lastAttackTick = 0;
 private static boolean evaluateTriggerbotTick(int targetCps) {
     long currentMillis = System.currentTimeMillis();
     long interval = 1000L / targetCps;
-    long jitter = ThreadLocalRandom.current().nextLong(25, 60); // Jitter estocástico para evadir heurísticas de CPS fijo
+    long jitter = ThreadLocalRandom.current().nextLong(25, 60);
     if (currentMillis - lastAttackTick >= (interval + jitter)) {
         lastAttackTick = currentMillis;
         return true;
@@ -126,7 +121,6 @@ public static class CiroxzClientScreen extends Screen {
         int buttonHeight = 24;
         int spacing = 28;
 
-        // Botones de Navegación del Sidebar (Diseño limpio, sin solapamientos)
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Dashboard"), b -> { currentTab = "Dashboard"; rebuildWidgets(); })
                 .dimensions(sidebarX, startY, buttonWidth, buttonHeight).build());
 
@@ -142,7 +136,6 @@ public static class CiroxzClientScreen extends Screen {
         this.addDrawableChild(ButtonWidget.builder(Text.literal("HitBox Exp"), b -> { currentTab = "HitBox Exp"; rebuildWidgets(); })
                 .dimensions(sidebarX, startY + (spacing * 4), buttonWidth, buttonHeight).build());
 
-        // Controles de Configuración en el Panel Principal (Posiciones estrictamente calculadas sin bugs visuales)
         int contentX = guiLeft + 145;
         int contentY = guiTop + 75;
 
@@ -155,7 +148,6 @@ public static class CiroxzClientScreen extends Screen {
                 default -> false;
             };
 
-            // Botón de Toggle Principal del Módulo
             String toggleText = isActive ? "Estado: Activo" : "Estado: Apagado";
             this.addDrawableChild(ButtonWidget.builder(Text.literal(toggleText), b -> {
                 switch (currentTab) {
@@ -167,7 +159,6 @@ public static class CiroxzClientScreen extends Screen {
                 rebuildWidgets();
             }).dimensions(contentX, contentY, 275, 24).build());
 
-            // Controles específicos espaciados verticalmente para evitar colisiones de texto
             if (currentTab.equals("Aim Assist")) {
                 double fov = (double) configurations.get("AimAssist").get("FOV");
                 double speed = (double) configurations.get("AimAssist").get("Speed");
@@ -221,17 +212,14 @@ public static class CiroxzClientScreen extends Screen {
         int guiLeft = (this.width - 440) / 2;
         int guiTop = (this.height - 280) / 2;
 
-        // Panel principal con estética limpia estilo cliente profesional (Minimalista oscuro con acentos sutiles)
-        context.fill(guiLeft, guiTop, guiLeft + 440, guiTop + 280, 0xEE141416); // Fondo gris muy oscuro sólido/semiopaco
-        context.fill(guiLeft, guiTop, guiLeft + 440, guiTop + 45, 0xFF1C1C21); // Barra superior
-        context.fill(guiLeft, guiTop + 55, guiLeft + 135, guiTop + 265, 0xFF18181D); // Sidebar izquierdo
-        context.drawBorder(guiLeft, guiTop, 440, 280, 0xFF32323D); // Borde exterior fino
+        context.fill(guiLeft, guiTop, guiLeft + 440, guiTop + 280, 0xEE141416);
+        context.fill(guiLeft, guiTop, guiLeft + 440, guiTop + 45, 0xFF1C1C21);
+        context.fill(guiLeft, guiTop + 55, guiLeft + 135, guiTop + 265, 0xFF18181D);
+        context.drawBorder(guiLeft, guiTop, 440, 280, 0xFF32323D);
 
-        // Título
         context.drawText(this.textRenderer, Text.literal("Ciroxz Client"), guiLeft + 18, guiTop + 16, 0xFFFFFF, true);
         context.drawText(this.textRenderer, Text.literal("v5.4"), guiLeft + 98, guiTop + 18, 0x888899, true);
 
-        // Renderizado de textos en el panel de contenido sin superposiciones
         if (currentTab.equals("Dashboard")) {
             int textX = guiLeft + 145;
             int textY = guiTop + 75;
@@ -249,7 +237,7 @@ public static class CiroxzClientScreen extends Screen {
             context.drawText(this.textRenderer, Text.literal("Módulo: " + currentTab), textX, textY, 0xAAAAAA, false);
         }
 
-        super.render(context, mouseX, mouseY, false);
+        super.render(context, mouseX, mouseY, delta);
     }
 
     @Override
