@@ -5,10 +5,13 @@ import com.cirox.client.module.Module;
 import com.cirox.client.module.impl.AimAssistModule;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
 
 public class CiroxClientScreen extends Screen {
     private Module selectedModule = null;
+    private boolean bindingKey = false;
 
     public CiroxClientScreen() {
         super(Text.literal("CiroxClient GUI"));
@@ -16,131 +19,141 @@ public class CiroxClientScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Fondo translúcido moderno
-        context.fill(0, 0, this.width, this.height, 0xAA121218);
+        // Fondo semi-transparente oscuro con degradado
+        context.fill(0, 0, this.width, this.height, 0xCC0D0D12);
         
-        // Título del cliente
-        context.drawText(this.textRenderer, "CiroxClient v1.0 [1.20.1]", 30, 25, 0xFFFFFFFF, true);
+        // Header de CiroxClient
+        context.fill(20, 15, 480, 42, 0xFF161622);
+        context.fill(20, 40, 480, 42, 0xFF6C5CE7); // Acento de neón violeta
+        context.drawText(this.textRenderer, "CIROX CLIENT", 30, 22, 0xFFFFFFFF, true);
+        context.drawText(this.textRenderer, "v1.0 | 1.20.1", 120, 24, 0xFFAAAAAA, false);
 
-        int startX = 30;
-        int startY = 60;
+        int startX = 20;
+        int startY = 55;
 
-        // Renderizado de Módulos (Panel Izquierdo)
+        // Renderizado de Lista de Módulos (Panel Izquierdo)
         for (Module m : CiroxClientMod.getModuleManager().getModules()) {
-            int color = m.isEnabled() ? 0xFF4646A0 : 0xFF22221E;
-            if (selectedModule == m) {
-                color = 0xFF5A5AB4;
-            }
-            context.fill(startX, startY, startX + 160, startY + 24, color);
-            context.drawText(this.textRenderer, m.getName(), startX + 8, startY + 8, 0xFFFFFFFF, false);
-            context.drawText(this.textRenderer, ">", startX + 146, startY + 8, 0xFF888888, false);
-            startY += 28;
+            int bgColor = m.isEnabled() ? 0xFF2A265F : 0xFF161620;
+            int borderColor = (selectedModule == m) ? 0xFF6C5CE7 : 0xFF282838;
+
+            context.fill(startX, startY, startX + 170, startY + 28, bgColor);
+            context.fill(startX, startY, startX + 2, startY + 28, borderColor); // Borde lateral
+
+            String keyName = m.getKey() == 0 ? "NONE" : InputUtil.fromKeyCode(m.getKey(), 0).getLocalizedText().getString().toUpperCase();
+            
+            context.drawText(this.textRenderer, m.getName(), startX + 10, startY + 10, 0xFFFFFFFF, false);
+            context.drawText(this.textRenderer, "[" + keyName + "]", startX + 115, startY + 10, 0xFF8888AA, false);
+
+            startY += 32;
         }
 
-        // Panel de Configuración Desplegable (Panel Derecho - Todo con Clic)
+        // Panel de Configuración Estético (Panel Derecho)
         if (selectedModule instanceof AimAssistModule) {
             AimAssistModule aim = (AimAssistModule) selectedModule;
-            int cfgX = 210;
-            int cfgY = 60;
+            int cfgX = 200;
+            int cfgY = 55;
             
-            context.fill(cfgX, cfgY, cfgX + 240, cfgY + 180, 0xEE1A1A24);
-            context.drawText(this.textRenderer, "Config: " + aim.getName(), cfgX + 10, cfgY + 10, 0xFF4682B4, true);
+            context.fill(cfgX, cfgY, cfgX + 280, cfgY + 220, 0xFF161622);
+            context.fill(cfgX, cfgY, cfgX + 280, cfgY + 2, 0xFF6C5CE7);
+            
+            context.drawText(this.textRenderer, "AJUSTES: " + aim.getName().toUpperCase(), cfgX + 12, cfgY + 12, 0xFF6C5CE7, true);
 
-            // Opción: Distancia [ - ] [ + ]
-            context.drawText(this.textRenderer, "Distancia: " + String.format("%.1f", aim.aimDistance) + " blk", cfgX + 10, cfgY + 40, 0xFFFFFFFF, false);
-            context.fill(cfgX + 150, cfgY + 36, cfgX + 175, cfgY + 54, 0xFF333344);
-            context.drawText(this.textRenderer, "-", cfgX + 161, cfgY + 41, 0xFFFFFFFF, true);
-            context.fill(cfgX + 185, cfgY + 36, cfgX + 210, cfgY + 54, 0xFF333344);
-            context.drawText(this.textRenderer, "+", cfgX + 195, cfgY + 41, 0xFFFFFFFF, true);
+            // Asignador de Tecla (Keybind)
+            context.drawText(this.textRenderer, "Tecla de acceso:", cfgX + 12, cfgY + 40, 0xFFDCDCC3, false);
+            String bindText = bindingKey ? "> PRESIONA TECLA <" : "[" + (aim.getKey() == 0 ? "NONE" : InputUtil.fromKeyCode(aim.getKey(), 0).getLocalizedText().getString().toUpperCase()) + "]";
+            context.fill(cfgX + 140, cfgY + 35, cfgX + 265, cfgY + 53, bindingKey ? 0xFF8C7AE6 : 0xFF222232);
+            context.drawText(this.textRenderer, bindText, cfgX + 150, cfgY + 40, 0xFFFFFFFF, false);
 
-            // Opción: Velocidad [ - ] [ + ]
-            context.drawText(this.textRenderer, "Velocidad: " + String.format("%.1f", aim.aimSpeed), cfgX + 10, cfgY + 75, 0xFFFFFFFF, false);
-            context.fill(cfgX + 150, cfgY + 71, cfgX + 175, cfgY + 89, 0xFF333344);
-            context.drawText(this.textRenderer, "-", cfgX + 161, cfgY + 76, 0xFFFFFFFF, true);
-            context.fill(cfgX + 185, cfgY + 71, cfgX + 210, cfgY + 89, 0xFF333344);
-            context.drawText(this.textRenderer, "+", cfgX + 195, cfgY + 76, 0xFFFFFFFF, true);
+            // Controles de Clic [-] [+]
+            renderControlRow(context, "Distancia", String.format("%.1f blk", aim.aimDistance), cfgX + 12, cfgY + 75);
+            renderControlRow(context, "Velocidad", String.format("%.1f", aim.aimSpeed), cfgX + 12, cfgY + 110);
+            renderControlRow(context, "FOV", String.format("%.1f°", aim.aimFov), cfgX + 12, cfgY + 145);
 
-            // Opción: FOV [ - ] [ + ]
-            context.drawText(this.textRenderer, "FOV: " + String.format("%.1f", aim.aimFov) + "°", cfgX + 10, cfgY + 110, 0xFFFFFFFF, false);
-            context.fill(cfgX + 150, cfgY + 106, cfgX + 175, cfgY + 124, 0xFF333344);
-            context.drawText(this.textRenderer, "-", cfgX + 161, cfgY + 111, 0xFFFFFFFF, true);
-            context.fill(cfgX + 185, cfgY + 106, cfgX + 210, cfgY + 124, 0xFF333344);
-            context.drawText(this.textRenderer, "+", cfgX + 195, cfgY + 111, 0xFFFFFFFF, true);
-
-            // Opción: Solo Espada [ TOGGLE ]
-            context.drawText(this.textRenderer, "Solo Espada:", cfgX + 10, cfgY + 145, 0xFFFFFFFF, false);
-            int swordColor = aim.onlySword ? 0xFF4646A0 : 0xFF333344;
-            context.fill(cfgX + 150, cfgY + 141, cfgX + 210, cfgY + 159, swordColor);
-            context.drawText(this.textRenderer, aim.onlySword ? "ON" : "OFF", cfgX + 168, cfgY + 146, 0xFFFFFFFF, true);
+            // Solo Espada Switch
+            context.drawText(this.textRenderer, "Solo Espada:", cfgX + 12, cfgY + 180, 0xFFFFFFFF, false);
+            context.fill(cfgX + 180, cfgY + 175, cfgX + 245, cfgY + 193, aim.onlySword ? 0xFF00B894 : 0xFFD63031);
+            context.drawText(this.textRenderer, aim.onlySword ? "ON" : "OFF", cfgX + 202, cfgY + 180, 0xFFFFFFFF, true);
         }
 
         super.render(context, mouseX, mouseY, delta);
     }
 
+    private void renderControlRow(DrawContext context, String label, String value, int x, int y) {
+        context.drawText(this.textRenderer, label + ": " + value, x, y, 0xFFFFFFFF, false);
+        context.fill(x + 180, x - 12 + 180, y - 4, y + 14, 0xFF28283D);
+        context.fill(x + 180, y - 4, x + 205, y + 14, 0xFF222232);
+        context.drawText(this.textRenderer, "-", x + 190, y, 0xFFFFFFFF, true);
+        context.fill(x + 215, y - 4, x + 240, y + 14, 0xFF222232);
+        context.drawText(this.textRenderer, "+", x + 224, y, 0xFFFFFFFF, true);
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) { // Solo usamos Click Izquierdo (0)
-            if (button == 1) {
-                // Click derecho abre/cierra panel de config
-                int startX = 30;
-                int startY = 60;
-                for (Module m : CiroxClientMod.getModuleManager().getModules()) {
-                    if (mouseX >= startX && mouseX <= startX + 160 && mouseY >= startY && mouseY <= startY + 24) {
-                        selectedModule = (selectedModule == m) ? null : m;
-                        return true;
-                    }
-                    startY += 28;
-                }
-            }
-            return super.mouseClicked(mouseX, mouseY, button);
-        }
+        int startX = 20;
+        int startY = 55;
 
-        int startX = 30;
-        int startY = 60;
-
-        // Selección de módulo con clic izquierdo
+        // Selección de módulos y activación por Clic Izquierdo / Clic Derecho para abrir menú
         for (Module m : CiroxClientMod.getModuleManager().getModules()) {
-            if (mouseX >= startX && mouseX <= startX + 160 && mouseY >= startY && mouseY <= startY + 24) {
-                m.toggle();
+            if (mouseX >= startX && mouseX <= startX + 170 && mouseY >= startY && mouseY <= startY + 28) {
+                if (button == 0) {
+                    m.toggle();
+                } else if (button == 1) {
+                    selectedModule = (selectedModule == m) ? null : m;
+                    bindingKey = false;
+                }
                 return true;
             }
-            startY += 28;
+            startY += 32;
         }
 
-        // Interacción por Clic Izquierdo en el Panel de Configuración de AimAssist
+        // Interacciones dentro de los ajustes de AimAssist
         if (selectedModule instanceof AimAssistModule) {
             AimAssistModule aim = (AimAssistModule) selectedModule;
-            int cfgX = 210;
-            int cfgY = 60;
+            int cfgX = 200;
+            int cfgY = 55;
 
-            // Distancia [-] [+](Y: 36 a 54)
-            if (mouseY >= cfgY + 36 && mouseY <= cfgY + 54) {
-                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 175) aim.aimDistance = Math.max(1.0f, aim.aimDistance - 0.2f);
-                if (mouseX >= cfgX + 185 && mouseX <= cfgX + 210) aim.aimDistance = Math.min(6.0f, aim.aimDistance + 0.2f);
+            // Clic en Bind
+            if (mouseX >= cfgX + 140 && mouseX <= cfgX + 265 && mouseY >= cfgY + 35 && mouseY <= cfgY + 53) {
+                bindingKey = true;
                 return true;
             }
-            // Velocidad [-] [+](Y: 71 a 89)
+
+            // Distancia [-] [+]
             if (mouseY >= cfgY + 71 && mouseY <= cfgY + 89) {
-                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 175) aim.aimSpeed = Math.max(1.0f, aim.aimSpeed - 0.5f);
-                if (mouseX >= cfgX + 185 && mouseX <= cfgX + 210) aim.aimSpeed = Math.min(20.0f, aim.aimSpeed + 0.5f);
-                return true;
+                if (mouseX >= cfgX + 192 && mouseX <= cfgX + 217) aim.aimDistance = Math.max(1.0f, aim.aimDistance - 0.2f);
+                if (mouseX >= cfgX + 227 && mouseX <= cfgX + 252) aim.aimDistance = Math.min(6.0f, aim.aimDistance + 0.2f);
             }
-            // FOV [-] [+](Y: 106 a 124)
+            // Velocidad [-] [+]
             if (mouseY >= cfgY + 106 && mouseY <= cfgY + 124) {
-                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 175) aim.aimFov = Math.max(5.0f, aim.aimFov - 5.0f);
-                if (mouseX >= cfgX + 185 && mouseX <= cfgX + 210) aim.aimFov = Math.min(180.0f, aim.aimFov + 5.0f);
-                return true;
+                if (mouseX >= cfgX + 192 && mouseX <= cfgX + 217) aim.aimSpeed = Math.max(1.0f, aim.aimSpeed - 0.5f);
+                if (mouseX >= cfgX + 227 && mouseX <= cfgX + 252) aim.aimSpeed = Math.min(20.0f, aim.aimSpeed + 0.5f);
             }
-            // Solo Espada Toggle (Y: 141 a 159)
+            // FOV [-] [+]
             if (mouseY >= cfgY + 141 && mouseY <= cfgY + 159) {
-                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 210) {
-                    aim.onlySword = !aim.onlySword;
-                    return true;
-                }
+                if (mouseX >= cfgX + 192 && mouseX <= cfgX + 217) aim.aimFov = Math.max(5.0f, aim.aimFov - 5.0f);
+                if (mouseX >= cfgX + 227 && mouseX <= cfgX + 252) aim.aimFov = Math.min(180.0f, aim.aimFov + 5.0f);
+            }
+            // Solo Espada
+            if (mouseX >= cfgX + 180 && mouseX <= cfgX + 245 && mouseY >= cfgY + 175 && mouseY <= cfgY + 193) {
+                aim.onlySword = !aim.onlySword;
             }
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (bindingKey && selectedModule != null) {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                selectedModule.setKey(0); // Borrar keybind
+            } else {
+                selectedModule.setKey(keyCode);
+            }
+            bindingKey = false;
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
