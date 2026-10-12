@@ -3,6 +3,7 @@ package com.cirox.client.mixin;
 import com.cirox.client.CiroxClientMod;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -23,13 +24,14 @@ public class ClientPlayerEntityMixin {
             net.minecraft.util.hit.EntityHitResult hit = (net.minecraft.util.hit.EntityHitResult) client.crosshairTarget;
             
             if (hit.getEntity() instanceof PlayerEntity targetPlayer && targetPlayer != player) {
-                // Cálculo de rotación suave (Interpolación lineal + Ruido gaussiano para burlar Grim/Vulcan Angle checks)
                 double dx = targetPlayer.getX() - player.getX();
                 double dz = targetPlayer.getZ() - player.getZ();
                 float targetYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0F);
 
                 float currentYaw = player.getYaw();
-                float yawDiff = Math.wrapDegrees(targetYaw - currentYaw);
+                
+                // Corrección con MathHelper de Yarn
+                float yawDiff = MathHelper.wrapDegrees(targetYaw - currentYaw);
 
                 if (Math.abs(yawDiff) < CiroxClientMod.aimFov) {
                     float speed = CiroxClientMod.aimSpeed;
