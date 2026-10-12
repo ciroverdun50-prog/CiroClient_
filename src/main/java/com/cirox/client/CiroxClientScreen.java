@@ -6,12 +6,12 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
 public class CiroxClientScreen extends Screen {
-    private String currentTab = "Dashboard";
+    private String currentTab = "Aim Assist";
     private double scrollOffset = 0.0;
-    private final double maxScroll = 140.0;
+    private final double maxScroll = 160.0;
 
     public CiroxClientScreen() {
-        super(Text.literal("Cirox Client Elite"));
+        super(Text.literal("Cirox Client Menu"));
     }
 
     @Override
@@ -23,15 +23,15 @@ public class CiroxClientScreen extends Screen {
     private void rebuildWidgets() {
         this.clearChildren();
 
-        int guiLeft = (this.width - 480) / 2;
-        int guiTop = (this.height - 310) / 2;
+        int guiLeft = (this.width - 500) / 2;
+        int guiTop = (this.height - 320) / 2;
         int sidebarX = guiLeft + 18;
         int startY = guiTop + 75;
-        int buttonWidth = 125;
+        int buttonWidth = 130;
         int buttonHeight = 24;
         int spacing = 28;
 
-        // Menú lateral de navegación
+        // Pestañas de navegación
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Dashboard"), b -> { currentTab = "Dashboard"; scrollOffset = 0; rebuildWidgets(); })
                 .dimensions(sidebarX, startY, buttonWidth, buttonHeight).build());
 
@@ -47,7 +47,7 @@ public class CiroxClientScreen extends Screen {
         this.addDrawableChild(ButtonWidget.builder(Text.literal("HitBox Exp"), b -> { currentTab = "HitBox Exp"; scrollOffset = 0; rebuildWidgets(); })
                 .dimensions(sidebarX, startY + (spacing * 4), buttonWidth, buttonHeight).build());
 
-        int contentX = guiLeft + 160;
+        int contentX = guiLeft + 165;
         int contentY = (int) (guiTop + 75 - scrollOffset);
 
         if (!currentTab.equals("Dashboard")) {
@@ -59,7 +59,7 @@ public class CiroxClientScreen extends Screen {
                 default -> false;
             };
 
-            // Botón de Estado (Verde si está activo, Rojo si está apagado)
+            // Activar/Desactivar Módulo
             String toggleText = isActive ? "Estado: §a[ACTIVO]" : "Estado: §c[APAGADO]";
             this.addDrawableChild(ButtonWidget.builder(Text.literal(toggleText), b -> {
                 switch (currentTab) {
@@ -69,38 +69,53 @@ public class CiroxClientScreen extends Screen {
                     case "HitBox Exp" -> CiroxClientMod.hitboxActive = !CiroxClientMod.hitboxActive;
                 }
                 rebuildWidgets();
-            }).dimensions(contentX, contentY, 280, 24).build());
+            }).dimensions(contentX, contentY, 300, 24).build());
 
-            // Controles de configuración independientes por módulo
+            // Controles de Aim Assist
             if (currentTab.equals("Aim Assist")) {
-                this.addDrawableChild(ButtonWidget.builder(Text.literal("FOV Límite: " + CiroxClientMod.aimFov + "°"), b -> {
-                    CiroxClientMod.aimFov = CiroxClientMod.aimFov >= 45.0f ? 15.0f : CiroxClientMod.aimFov + 5.0f;
+                // Control FOV
+                this.addDrawableChild(ButtonWidget.builder(Text.literal("Rango FOV: " + CiroxClientMod.aimFov + "°"), b -> {
+                    CiroxClientMod.aimFov = CiroxClientMod.aimFov >= 90.0f ? 15.0f : CiroxClientMod.aimFov + 15.0f;
                     rebuildWidgets();
-                }).dimensions(contentX, contentY + 34, 280, 24).build());
+                }).dimensions(contentX, contentY + 34, 300, 24).build());
 
-                this.addDrawableChild(ButtonWidget.builder(Text.literal("Suavizado (Speed): " + CiroxClientMod.aimSpeed), b -> {
-                    CiroxClientMod.aimSpeed = CiroxClientMod.aimSpeed >= 7.0f ? 2.0f : CiroxClientMod.aimSpeed + 0.5f;
+                // Control Distancia (Reach)
+                this.addDrawableChild(ButtonWidget.builder(Text.literal("Distancia Máxima: " + CiroxClientMod.aimDistance + " bloques"), b -> {
+                    CiroxClientMod.aimDistance = CiroxClientMod.aimDistance >= 6.0f ? 3.0f : Math.round((CiroxClientMod.aimDistance + 0.5f) * 10.0f) / 10.0f;
                     rebuildWidgets();
-                }).dimensions(contentX, contentY + 68, 280, 24).build());
+                }).dimensions(contentX, contentY + 68, 300, 24).build());
+
+                // Control Velocidad (Suavizado)
+                this.addDrawableChild(ButtonWidget.builder(Text.literal("Suavizado Velocidad: " + CiroxClientMod.aimSpeed), b -> {
+                    CiroxClientMod.aimSpeed = CiroxClientMod.aimSpeed >= 10.0f ? 1.0f : CiroxClientMod.aimSpeed + 1.0f;
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 102, 300, 24).build());
+
+                // Casilla / Botón Only Sword
+                String swordText = "Filtro Only Sword: " + (CiroxClientMod.onlySword ? "§a[SI]" : "§c[NO]");
+                this.addDrawableChild(ButtonWidget.builder(Text.literal(swordText), b -> {
+                    CiroxClientMod.onlySword = !CiroxClientMod.onlySword;
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 136, 300, 24).build());
 
             } else if (currentTab.equals("Triggerbot")) {
                 this.addDrawableChild(ButtonWidget.builder(Text.literal("CPS Máximo: " + CiroxClientMod.triggerCps), b -> {
-                    CiroxClientMod.triggerCps = CiroxClientMod.triggerCps >= 14 ? 6 : CiroxClientMod.triggerCps + 1;
+                    CiroxClientMod.triggerCps = CiroxClientMod.triggerCps >= 16 ? 6 : CiroxClientMod.triggerCps + 1;
                     rebuildWidgets();
-                }).dimensions(contentX, contentY + 34, 280, 24).build());
+                }).dimensions(contentX, contentY + 34, 300, 24).build());
 
             } else if (currentTab.equals("Jump Reset")) {
                 this.addDrawableChild(ButtonWidget.builder(Text.literal("Probabilidad W-Tap: " + CiroxClientMod.jumpResetChance + "%"), b -> {
-                    CiroxClientMod.jumpResetChance = CiroxClientMod.jumpResetChance >= 100 ? 60 : CiroxClientMod.jumpResetChance + 10;
+                    CiroxClientMod.jumpResetChance = CiroxClientMod.jumpResetChance >= 100 ? 50 : CiroxClientMod.jumpResetChance + 10;
                     rebuildWidgets();
-                }).dimensions(contentX, contentY + 34, 280, 24).build());
+                }).dimensions(contentX, contentY + 34, 300, 24).build());
 
             } else if (currentTab.equals("HitBox Exp")) {
                 this.addDrawableChild(ButtonWidget.builder(Text.literal("Expansión Segura: +" + CiroxClientMod.hitboxExpansion), b -> {
-                    double nextExp = CiroxClientMod.hitboxExpansion >= 0.08 ? 0.02 : CiroxClientMod.hitboxExpansion + 0.01;
+                    double nextExp = CiroxClientMod.hitboxExpansion >= 0.12 ? 0.02 : CiroxClientMod.hitboxExpansion + 0.02;
                     CiroxClientMod.hitboxExpansion = Math.round(nextExp * 100.0) / 100.0;
                     rebuildWidgets();
-                }).dimensions(contentX, contentY + 34, 280, 24).build());
+                }).dimensions(contentX, contentY + 34, 300, 24).build());
             }
         }
     }
@@ -116,33 +131,31 @@ public class CiroxClientScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context);
 
-        int guiLeft = (this.width - 480) / 2;
-        int guiTop = (this.height - 310) / 2;
+        int guiLeft = (this.width - 500) / 2;
+        int guiTop = (this.height - 320) / 2;
 
-        // Estética visual: Fondo Rojo Carmesí Oscuro con bordes e interiores limpios
-        context.fill(guiLeft, guiTop, guiLeft + 480, guiTop + 310, 0xEE1C0B0B); // Fondo rojo base
-        context.fill(guiLeft, guiTop, guiLeft + 480, guiTop + 50, 0xFF361010);   // Barra superior
-        context.fill(guiLeft, guiTop + 60, guiLeft + 150, guiTop + 295, 0xFF2A0D0D); // Sidebar izquierdo
-        context.drawBorder(guiLeft, guiTop, 480, 310, 0xFFFF4444); // Borde rojo brillante
+        // Estilo Rojo Oscuro Carmesí
+        context.fill(guiLeft, guiTop, guiLeft + 500, guiTop + 320, 0xEE1C0B0B);
+        context.fill(guiLeft, guiTop, guiLeft + 500, guiTop + 50, 0xFF361010);
+        context.fill(guiLeft, guiTop + 60, guiLeft + 155, guiTop + 305, 0xFF2A0D0D);
+        context.drawBorder(guiLeft, guiTop, 500, 320, 0xFFFF3333);
 
-        context.drawText(this.textRenderer, Text.literal("§lCirox Client // Grim & Vulcan Bypass"), guiLeft + 18, guiTop + 18, 0xFF6666, true);
-        context.drawText(this.textRenderer, Text.literal("v7.2"), guiLeft + 145, guiTop + 20, 0xAA8888, true);
+        context.drawText(this.textRenderer, Text.literal("§lCirox Client // AimAssist Precision"), guiLeft + 18, guiTop + 18, 0xFF6666, true);
 
         if (currentTab.equals("Dashboard")) {
-            int textX = guiLeft + 165;
+            int textX = guiLeft + 170;
             int textY = guiTop + 75;
-            context.drawText(this.textRenderer, Text.literal("§lPanel de Control Anti-Heurístico"), textX, textY, 0xFFFFFF, true);
-            context.drawText(this.textRenderer, Text.literal("Usa la rueda del ratón para explorar opciones."), textX, textY + 20, 0xBB8888, false);
-
-            int statusY = textY + 60;
+            context.drawText(this.textRenderer, Text.literal("§lPanel de Configuración"), textX, textY, 0xFFFFFF, true);
+            
+            int statusY = textY + 40;
             context.drawText(this.textRenderer, Text.literal("Aim Assist: " + (CiroxClientMod.aimAssistActive ? "§a[ACTIVO]" : "§c[APAGADO]")), textX, statusY, 0xDDDDDD, false);
-            context.drawText(this.textRenderer, Text.literal("Triggerbot: " + (CiroxClientMod.triggerbotActive ? "§a[ACTIVO]" : "§c[APAGADO]")), textX, statusY + 25, 0xDDDDDD, false);
-            context.drawText(this.textRenderer, Text.literal("Jump Reset: " + (CiroxClientMod.jumpResetActive ? "§a[ACTIVO]" : "§c[APAGADO]")), textX, statusY + 50, 0xDDDDDD, false);
-            context.drawText(this.textRenderer, Text.literal("HitBox Exp: " + (CiroxClientMod.hitboxActive ? "§a[ACTIVO]" : "§c[APAGADO]")), textX, statusY + 75, 0xDDDDDD, false);
+            context.drawText(this.textRenderer, Text.literal("Filtro Espada: " + (CiroxClientMod.onlySword ? "§a[ACTIVADO]" : "§7[DESACTIVADO]")), textX, statusY + 20, 0xDDDDDD, false);
+            context.drawText(this.textRenderer, Text.literal("FOV Aim: " + CiroxClientMod.aimFov + "°"), textX, statusY + 40, 0xDDDDDD, false);
+            context.drawText(this.textRenderer, Text.literal("Rango Detección: " + CiroxClientMod.aimDistance + " bloques"), textX, statusY + 60, 0xDDDDDD, false);
         } else {
-            int textX = guiLeft + 165;
+            int textX = guiLeft + 170;
             int textY = guiTop + 80 - (int)scrollOffset;
-            context.drawText(this.textRenderer, Text.literal("§lMódulo: " + currentTab), textX, textY, 0xFF6666, true);
+            context.drawText(this.textRenderer, Text.literal("§lAjustes de " + currentTab), textX, textY, 0xFF6666, true);
         }
 
         super.render(context, mouseX, mouseY, delta);
