@@ -2,6 +2,7 @@ package com.cirox.client.mixin;
 
 import com.cirox.client.CiroxClientMod;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Box;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,10 +16,10 @@ public abstract class EntityMixin {
 
     @Inject(method = "getBoundingBox", at = @At("HEAD"), cancellable = true)
     private void onGetBoundingBox(CallbackInfoReturnable<Box> cir) {
-        if (CiroxClientMod.hitboxActive && ((Object) this) instanceof net.minecraft.entity.player.PlayerEntity) {
-            Entity entity = (Entity) (Object) this;
-            if (entity != net.minecraft.client.MinecraftClient.getInstance().player) {
+        if (CiroxClientMod.hitboxActive && ((Object) this) instanceof PlayerEntity player) {
+            if (player != net.minecraft.client.MinecraftClient.getInstance().player) {
                 double exp = CiroxClientMod.hitboxExpansion;
+                // Expansión lateral controlada para no sobrepasar los límites de validación de reach de Grim/Vulcan
                 Box expandedBox = this.boundingBox.expand(exp, 0.0, exp);
                 cir.setReturnValue(expandedBox);
             }
