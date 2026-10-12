@@ -1,5 +1,6 @@
 package com.cirox.client;
 
+import com.cirox.client.module.*;
 import com.cirox.client.ui.CiroxClientScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
