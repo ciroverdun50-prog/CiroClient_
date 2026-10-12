@@ -1,12 +1,30 @@
-package com.cirox.client.module.impl;
+package com.cirox.client.module;
 
-import com.cirox.client.module.Module;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 
 public class PlayerESPModule extends Module {
-    public boolean boxEsp = true;
-    public boolean tracerEsp = false;
-
     public PlayerESPModule() {
-        super("PlayerESP", "Muestra la posición de los jugadores a través de paredes", Category.RENDER);
+        super("PlayerESP", "Highlights players through walls", Category.RENDER);
+    }
+
+    @Override
+    public void onTick() {
+        if (mc.world == null) return;
+        for (Entity entity : mc.world.getEntities()) {
+            if (entity instanceof PlayerEntity && entity != mc.player) {
+                entity.setGlowing(true);
+            }
+        }
+    }
+
+    @Override
+    public void onDisable() {
+        if (mc.world == null) return;
+        for (Entity entity : mc.world.getEntities()) {
+            if (entity instanceof PlayerEntity && entity != mc.player) {
+                entity.setGlowing(false);
+            }
+        }
     }
 }
