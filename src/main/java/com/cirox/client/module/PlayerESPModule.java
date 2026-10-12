@@ -1,4 +1,4 @@
-package com.cirox.client.module.impl;
+package com.cirox.client.module;
 
 import com.cirox.client.module.Module;
 
