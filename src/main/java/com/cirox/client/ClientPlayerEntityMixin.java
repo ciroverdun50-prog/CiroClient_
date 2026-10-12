@@ -1,5 +1,7 @@
 package com.cirox.client.mixin;
 
+import com.cirox.client.module.*;
+
 import com.cirox.client.CiroxClientMod;
 import com.cirox.client.module.impl.AimAssistModule;
 import net.minecraft.client.network.ClientPlayerEntity;
