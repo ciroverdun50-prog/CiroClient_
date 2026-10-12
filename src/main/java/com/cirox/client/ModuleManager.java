@@ -1,6 +1,5 @@
-package com.cirox.client.module;
+package com.cirox.client;
 
-import com.cirox.client.module.impl.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +11,7 @@ public class ModuleManager {
         modules.add(new TriggerbotModule());
         modules.add(new HitboxModule());
         modules.add(new JumpResetModule());
-        modules.add(new PlayerESPModule()); // <-- Registrado correctamente aquí
+        modules.add(new PlayerESPModule());
     }
 
     public List<Module> getModules() {
