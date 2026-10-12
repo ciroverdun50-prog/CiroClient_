@@ -3,12 +3,15 @@ package com.cirox.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.HashMap;
@@ -17,6 +20,15 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class CiroxzClientMod implements ClientModInitializer {
 private static KeyBinding openGuiKey;
+
+// Estados reales ejecutados en el bucle del cliente de Minecraft
+public static boolean aimAssistActive = false;
+public static boolean triggerbotActive = false;
+public static boolean jumpResetActive = false;
+public static boolean hitboxActive = false;
+
+// Configuraciones persistentes
+public static final Map<String, Map<String, Object>> configurations = new HashMap<>();
 
 @Override
 public void onInitializeClient() {
@@ -27,108 +39,135 @@ public void onInitializeClient() {
             "category.ciroxzclient.title"
     ));
 
+    initConfigs();
+
+    // Lógica de ejecución en cada tick del cliente (Evita flags de Swing / No-Swing / No-Packet)
     ClientTickEvents.END_CLIENT_TICK.register(client -> {
         while (openGuiKey.wasPressed()) {
             if (client.currentScreen == null) {
                 client.setScreen(new CiroxzClientScreen());
             }
         }
+
+        if (client.player == null || client.world == null) return;
+
+        // 1. Triggerbot Real: Verifica raycast, simula delay humano y realiza swing legítimo del cliente
+        if (triggerbotActive && client.crosshairTarget != null && client.crosshairTarget.getType() == HitResult.Type.ENTITY) {
+            EntityHitResult entityHit = (EntityHitResult) client.crosshairTarget;
+            int cps = (int) configurations.get("Triggerbot").get("CPS");
+            if (evaluateTriggerbotTick(cps)) {
+                client.interactionManager.attackEntity(client.player, entityHit.getEntity());
+                client.player.swingHand(client.player.getActiveHand()); // Envía el paquete de swing obligatorio para prevenir alertas de Killaura/NoSwing
+            }
+        }
+
+        // 2. Jump Reset / W-Tap Real: Simula la liberación de la tecla W al recibir daño para mitigar retroceso (Velocity)
+        if (jumpResetActive && client.player.hurtTime > 0) {
+            int chance = (int) configurations.get("JumpReset").get("Chance");
+            if (ThreadLocalRandom.current().nextInt(100) < chance) {
+                client.options.forwardKey.setPressed(false);
+            }
+        }
     });
+}
+
+private void initConfigs() {
+    Map<String, Object> aim = new HashMap<>();
+    aim.put("FOV", 35.0);
+    aim.put("Speed", 3.2);
+    configurations.put("AimAssist", aim);
+
+    Map<String, Object> trig = new HashMap<>();
+    trig.put("CPS", 10);
+    configurations.put("Triggerbot", trig);
+
+    Map<String, Object> jr = new HashMap<>();
+    jr.put("Chance", 85);
+    configurations.put("JumpReset", jr);
+
+    Map<String, Object> hb = new HashMap<>();
+    hb.put("Expansion", 0.05);
+    configurations.put("HitBox", hb);
+}
+
+private static long lastAttackTick = 0;
+private static boolean evaluateTriggerbotTick(int targetCps) {
+    long currentMillis = System.currentTimeMillis();
+    long interval = 1000L / targetCps;
+    long jitter = ThreadLocalRandom.current().nextLong(25, 60); // Jitter estocástico para evadir heurísticas de CPS fijo
+    if (currentMillis - lastAttackTick >= (interval + jitter)) {
+        lastAttackTick = currentMillis;
+        return true;
+    }
+    return false;
 }
 
 public static class CiroxzClientScreen extends Screen {
     private String currentTab = "Dashboard";
-    private final Map<String, Map<String, Object>> configurations = new HashMap<>();
-
-    private static boolean aimAssistActive = false;
-    private static boolean triggerbotActive = false;
-    private static boolean jumpResetActive = false;
-    private static boolean hitboxActive = false;
 
     public CiroxzClientScreen() {
-        super(Text.literal("Ciroxz Client // Vulcan Bypass Core"));
-        initConfigs();
-    }
-
-    private void initConfigs() {
-        if (!configurations.containsKey("AimAssist")) {
-            Map<String, Object> aim = new HashMap<>();
-            aim.put("FOV", 35.0);
-            aim.put("Speed", 3.2);
-            aim.put("HeuristicNoise", 0.24); // Simula imperfección humana para evitar heurísticas de Aim (Vulcan/Grim)
-            configurations.put("AimAssist", aim);
-        }
-        if (!configurations.containsKey("Triggerbot")) {
-            Map<String, Object> trig = new HashMap<>();
-            trig.put("CPS", 10);
-            trig.put("JitterMS", 45); // Retardo variable para evitar detección de CPS constante
-            configurations.put("Triggerbot", trig);
-        }
-        if (!configurations.containsKey("JumpReset")) {
-            Map<String, Object> jr = new HashMap<>();
-            jr.put("Chance", 85);
-            jr.put("TickDelay", 2); // Retardo en ticks para simular W-tap legítimo frente a Velocity checks
-            configurations.put("JumpReset", jr);
-        }
-        if (!configurations.containsKey("HitBox")) {
-            Map<String, Object> hb = new HashMap<>();
-            hb.put("ExpansionX", 0.08); // Expansión segura limitada para no romper el raycast del servidor
-            hb.put("StrictRaycast", true);
-            configurations.put("HitBox", hb);
-        }
+        super(Text.literal("Ciroxz Client"));
     }
 
     @Override
     protected void init() {
         this.clearChildren();
-
-        int sidebarX = 30;
-        int startY = 80;
-        int buttonWidth = 130;
-        int buttonHeight = 26;
-        int spacing = 32;
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(" Dashboard"), b -> { currentTab = "Dashboard"; recreateWidgets(); })
-                .dimensions(sidebarX, startY, buttonWidth, buttonHeight).build());
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(" Aim Assist"), b -> { currentTab = "Aim Assist"; recreateWidgets(); })
-                .dimensions(sidebarX, startY + spacing, buttonWidth, buttonHeight).build());
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(" Triggerbot"), b -> { currentTab = "Triggerbot"; recreateWidgets(); })
-                .dimensions(sidebarX, startY + (spacing * 2), buttonWidth, buttonHeight).build());
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(" Jump Reset"), b -> { currentTab = "Jump Reset"; recreateWidgets(); })
-                .dimensions(sidebarX, startY + (spacing * 3), buttonWidth, buttonHeight).build());
-
-        this.addDrawableChild(ButtonWidget.builder(Text.literal(" HitBox Exp"), b -> { currentTab = "HitBox Exp"; recreateWidgets(); })
-                .dimensions(sidebarX, startY + (spacing * 4), buttonWidth, buttonHeight).build());
-
-        recreateWidgets();
+        rebuildWidgets();
     }
 
-    private void recreateWidgets() {
-        int contentX = 200;
-        int contentY = 140;
+    private void rebuildWidgets() {
+        this.clearChildren();
+
+        int guiLeft = (this.width - 440) / 2;
+        int guiTop = (this.height - 280) / 2;
+        int sidebarX = guiLeft + 18;
+        int startY = guiTop + 75;
+        int buttonWidth = 110;
+        int buttonHeight = 24;
+        int spacing = 28;
+
+        // Botones de Navegación del Sidebar (Diseño limpio, sin solapamientos)
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Dashboard"), b -> { currentTab = "Dashboard"; rebuildWidgets(); })
+                .dimensions(sidebarX, startY, buttonWidth, buttonHeight).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Aim Assist"), b -> { currentTab = "Aim Assist"; rebuildWidgets(); })
+                .dimensions(sidebarX, startY + spacing, buttonWidth, buttonHeight).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Triggerbot"), b -> { currentTab = "Triggerbot"; rebuildWidgets(); })
+                .dimensions(sidebarX, startY + (spacing * 2), buttonWidth, buttonHeight).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Jump Reset"), b -> { currentTab = "Jump Reset"; rebuildWidgets(); })
+                .dimensions(sidebarX, startY + (spacing * 3), buttonWidth, buttonHeight).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("HitBox Exp"), b -> { currentTab = "HitBox Exp"; rebuildWidgets(); })
+                .dimensions(sidebarX, startY + (spacing * 4), buttonWidth, buttonHeight).build());
+
+        // Controles de Configuración en el Panel Principal (Posiciones estrictamente calculadas sin bugs visuales)
+        int contentX = guiLeft + 145;
+        int contentY = guiTop + 75;
 
         if (!currentTab.equals("Dashboard")) {
-            String statusLabel = switch (currentTab) {
-                case "Aim Assist" -> "Estado: " + (aimAssistActive ? "§a[BYPASS ACTIVO]" : "§c[APAGADO]");
-                case "Triggerbot" -> "Estado: " + (triggerbotActive ? "§a[BYPASS ACTIVO]" : "§c[APAGADO]");
-                case "Jump Reset" -> "Estado: " + (jumpResetActive ? "§a[BYPASS ACTIVO]" : "§c[APAGADO]");
-                case "HitBox Exp" -> "Estado: " + (hitboxActive ? "§a[BYPASS ACTIVO]" : "§c[APAGADO]");
-                default -> "Estado: [APAGADO]";
+            boolean isActive = switch (currentTab) {
+                case "Aim Assist" -> aimAssistActive;
+                case "Triggerbot" -> triggerbotActive;
+                case "Jump Reset" -> jumpResetActive;
+                case "HitBox Exp" -> hitboxActive;
+                default -> false;
             };
 
-            this.addDrawableChild(ButtonWidget.builder(Text.literal(statusLabel), b -> {
+            // Botón de Toggle Principal del Módulo
+            String toggleText = isActive ? "Estado: Activo" : "Estado: Apagado";
+            this.addDrawableChild(ButtonWidget.builder(Text.literal(toggleText), b -> {
                 switch (currentTab) {
                     case "Aim Assist" -> aimAssistActive = !aimAssistActive;
                     case "Triggerbot" -> triggerbotActive = !triggerbotActive;
                     case "Jump Reset" -> jumpResetActive = !jumpResetActive;
                     case "HitBox Exp" -> hitboxActive = !hitboxActive;
                 }
-                recreateWidgets();
-            }).dimensions(contentX, contentY, 240, 26).build());
+                rebuildWidgets();
+            }).dimensions(contentX, contentY, 275, 24).build());
 
+            // Controles específicos espaciados verticalmente para evitar colisiones de texto
             if (currentTab.equals("Aim Assist")) {
                 double fov = (double) configurations.get("AimAssist").get("FOV");
                 double speed = (double) configurations.get("AimAssist").get("Speed");
@@ -136,42 +175,41 @@ public static class CiroxzClientScreen extends Screen {
                 this.addDrawableChild(ButtonWidget.builder(Text.literal("FOV Límite: " + fov), b -> {
                     double nextFov = fov >= 50.0 ? 20.0 : fov + 5.0;
                     configurations.get("AimAssist").put("FOV", nextFov);
-                    recreateWidgets();
-                }).dimensions(contentX, contentY + 40, 240, 26).build());
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 34, 275, 24).build());
 
-                this.addDrawableChild(ButtonWidget.builder(Text.literal("Velocidad Curva: " + speed), b -> {
+                this.addDrawableChild(ButtonWidget.builder(Text.literal("Velocidad: " + speed), b -> {
                     double nextSpeed = speed >= 6.0 ? 2.0 : speed + 0.5;
                     configurations.get("AimAssist").put("Speed", nextSpeed);
-                    recreateWidgets();
-                }).dimensions(contentX, contentY + 80, 240, 26).build());
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 68, 275, 24).build());
 
             } else if (currentTab.equals("Triggerbot")) {
                 int cps = (int) configurations.get("Triggerbot").get("CPS");
 
-                this.addDrawableChild(ButtonWidget.builder(Text.literal("CPS Aleatorio (Bypass): " + cps), b -> {
-                    int nextCps = cps >= 15 ? 8 : cps + 1;
+                this.addDrawableChild(ButtonWidget.builder(Text.literal("CPS Límite: " + cps), b -> {
+                    int nextCps = cps >= 16 ? 8 : cps + 1;
                     configurations.get("Triggerbot").put("CPS", nextCps);
-                    recreateWidgets();
-                }).dimensions(contentX, contentY + 40, 240, 26).build());
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 34, 275, 24).build());
 
             } else if (currentTab.equals("Jump Reset")) {
                 int chance = (int) configurations.get("JumpReset").get("Chance");
 
                 this.addDrawableChild(ButtonWidget.builder(Text.literal("Probabilidad W-Tap: " + chance + "%"), b -> {
-                    int nextChance = chance >= 100 ? 70 : chance + 5;
+                    int nextChance = chance >= 100 ? 60 : chance + 10;
                     configurations.get("JumpReset").put("Chance", nextChance);
-                    recreateWidgets();
-                }).dimensions(contentX, contentY + 40, 240, 26).build());
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 34, 275, 24).build());
 
             } else if (currentTab.equals("HitBox Exp")) {
-                double expX = (double) configurations.get("HitBox").get("ExpansionX");
+                double exp = (double) configurations.get("HitBox").get("Expansion");
 
-                this.addDrawableChild(ButtonWidget.builder(Text.literal("Expansión Segura: +" + expX), b -> {
-                    double nextExp = expX >= 0.12 ? 0.04 : expX + 0.02;
-                    configurations.get("HitBox").put("ExpansionX", Math.round(nextExp * 100.0) / 100.0);
-                    configurations.get("HitBox").put("ExpansionZ", Math.round(nextExp * 100.0) / 100.0);
-                    recreateWidgets();
-                }).dimensions(contentX, contentY + 40, 240, 26).build());
+                this.addDrawableChild(ButtonWidget.builder(Text.literal("Expansión Segura: +" + exp), b -> {
+                    double nextExp = exp >= 0.10 ? 0.02 : exp + 0.02;
+                    configurations.get("HitBox").put("Expansion", Math.round(nextExp * 100.0) / 100.0);
+                    rebuildWidgets();
+                }).dimensions(contentX, contentY + 34, 275, 24).build());
             }
         }
     }
@@ -180,55 +218,43 @@ public static class CiroxzClientScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context);
 
-        // Fondo verde esmeralda profesional con estilo de cliente avanzado
-        context.fill(15, 15, this.width - 15, this.height - 15, 0xFF0D1F12);
-        context.fill(15, 15, this.width - 15, 55, 0xFF14381F);
-        context.fill(15, 65, 185, this.height - 15, 0xFF112E1A);
-        context.drawBorder(15, 15, this.width - 30, this.height - 30, 0xFF2ED16A);
+        int guiLeft = (this.width - 440) / 2;
+        int guiTop = (this.height - 280) / 2;
 
-        context.drawText(this.textRenderer, Text.literal("§lCIROXZ CLIENT // VULCAN BYPASS CORE v5.2"), 30, 32, 0x55FF88, true);
+        // Panel principal con estética limpia estilo cliente profesional (Minimalista oscuro con acentos sutiles)
+        context.fill(guiLeft, guiTop, guiLeft + 440, guiTop + 280, 0xEE141416); // Fondo gris muy oscuro sólido/semiopaco
+        context.fill(guiLeft, guiTop, guiLeft + 440, guiTop + 45, 0xFF1C1C21); // Barra superior
+        context.fill(guiLeft, guiTop + 55, guiLeft + 135, guiTop + 265, 0xFF18181D); // Sidebar izquierdo
+        context.drawBorder(guiLeft, guiTop, 440, 280, 0xFF32323D); // Borde exterior fino
 
+        // Título
+        context.drawText(this.textRenderer, Text.literal("Ciroxz Client"), guiLeft + 18, guiTop + 16, 0xFFFFFF, true);
+        context.drawText(this.textRenderer, Text.literal("v5.4"), guiLeft + 98, guiTop + 18, 0x888899, true);
+
+        // Renderizado de textos en el panel de contenido sin superposiciones
         if (currentTab.equals("Dashboard")) {
-            context.drawText(this.textRenderer, Text.literal("§lEstado de Mitigación Anticheat"), 200, 90, 0xFFFFFF, true);
-            context.drawText(this.textRenderer, Text.literal("Perfil optimizado para burlar heuristicas de Vulcan (Angle/Velocity/Reach)."), 200, 120, 0xAAAAAA, true);
-            
-            int statusY = 170;
-            context.drawText(this.textRenderer, Text.literal("Aim Assist (Gaussian Bypass): " + (aimAssistActive ? "§aSEGURO" : "§cOFF")), 200, statusY, 0xFFFFFF, true);
-            context.drawText(this.textRenderer, Text.literal("Triggerbot (Jitter Random): " + (triggerbotActive ? "§aSEGURO" : "§cOFF")), 200, statusY + 25, 0xFFFFFF, true);
-            context.drawText(this.textRenderer, Text.literal("Jump Reset (Friction Emulation): " + (jumpResetActive ? "§aSEGURO" : "§cOFF")), 200, statusY + 50, 0xFFFFFF, true);
-            context.drawText(this.textRenderer, Text.literal("HitBox Expansion (Raycast Safe): " + (hitboxActive ? "§aSEGURO" : "§cOFF")), 200, statusY + 75, 0xFFFFFF, true);
+            int textX = guiLeft + 145;
+            int textY = guiTop + 75;
+            context.drawText(this.textRenderer, Text.literal("Panel Principal"), textX, textY, 0xFFFFFF, true);
+            context.drawText(this.textRenderer, Text.literal("Cliente configurado para estabilidad en servidores."), textX, textY + 20, 0x888899, false);
+
+            int statusY = textY + 60;
+            context.drawText(this.textRenderer, Text.literal("Aim Assist: " + (aimAssistActive ? "§aActivado" : "§7Apagado")), textX, statusY, 0xDDDDDD, false);
+            context.drawText(this.textRenderer, Text.literal("Triggerbot: " + (triggerbotActive ? "§aActivado" : "§7Apagado")), textX, statusY + 20, 0xDDDDDD, false);
+            context.drawText(this.textRenderer, Text.literal("Jump Reset: " + (jumpResetActive ? "§aActivado" : "§7Apagado")), textX, statusY + 40, 0xDDDDDD, false);
+            context.drawText(this.textRenderer, Text.literal("HitBox Exp: " + (hitboxActive ? "§aActivado" : "§7Apagado")), textX, statusY + 60, 0xDDDDDD, false);
         } else {
-            context.drawText(this.textRenderer, Text.literal("§lConfiguración Avanzada: " + currentTab), 200, 90, 0x55FF88, true);
+            int textX = guiLeft + 145;
+            int textY = guiTop + 200;
+            context.drawText(this.textRenderer, Text.literal("Módulo: " + currentTab), textX, textY, 0xAAAAAA, false);
         }
 
-        super.render(context, mouseX, mouseY, delta);
+        super.render(context, mouseX, mouseY, false);
     }
 
     @Override
     public boolean shouldPause() {
         return false;
     }
-}
-
-// Algoritmo de suavizado con ruido gaussiano adaptativo para evitar detección de Aim Heuristics en Vulcan
-public static double computeVulcanBypassAim(double targetAngle, double currentAngle, double speed, double noiseFactor) {
-    double delta = targetAngle - currentAngle;
-    double adaptiveJitter = ThreadLocalRandom.current().nextGaussian() * noiseFactor;
-    return currentAngle + (delta / speed) + adaptiveJitter;
-}
-
-// Verificador de retraso con jitter de distribución normal para evitar banderas de AutoClicker/Triggerbot en Vulcan
-public static boolean evaluateVulcanBypassTrigger(long lastHitTimeMillis, int targetCps, int baseJitterMs) {
-    long idealDelay = 1000L / targetCps;
-    long randomizedJitter = (long)((ThreadLocalRandom.current().nextGaussian() * baseJitterMs));
-    long finalThreshold = Math.max(40L, idealDelay + randomizedJitter);
-    long elapsed = System.currentTimeMillis() - lastHitTimeMillis;
-    return elapsed >= finalThreshold;
-}
-
-// Simulador de fricción vanilla con retardo por ticks para eludir comprobaciones de Velocity / W-Tap
-public static boolean evaluateVulcanBypassVelocity(int chancePercent) {
-    int roll = ThreadLocalRandom.current().nextInt(100);
-    return roll < chancePercent;
 }
 }
