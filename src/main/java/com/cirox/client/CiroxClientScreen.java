@@ -29,7 +29,7 @@ public class CiroxClientScreen extends Screen {
         for (Module m : CiroxClientMod.getModuleManager().getModules()) {
             int color = m.isEnabled() ? 0xFF4646A0 : 0xFF22221E;
             if (selectedModule == m) {
-                color = 0xFF5A5AB4; // Resaltado si está seleccionado para configurar
+                color = 0xFF5A5AB4;
             }
             context.fill(startX, startY, startX + 160, startY + 24, color);
             context.drawText(this.textRenderer, m.getName(), startX + 8, startY + 8, 0xFFFFFFFF, false);
@@ -37,22 +37,41 @@ public class CiroxClientScreen extends Screen {
             startY += 28;
         }
 
-        // Renderizado del Panel de Configuración Desplegable (Panel Derecho)
+        // Panel de Configuración Desplegable (Panel Derecho - Todo con Clic)
         if (selectedModule instanceof AimAssistModule) {
             AimAssistModule aim = (AimAssistModule) selectedModule;
             int cfgX = 210;
             int cfgY = 60;
             
-            context.fill(cfgX, cfgY, cfgX + 220, cfgY + 160, 0xEE1A1A24);
+            context.fill(cfgX, cfgY, cfgX + 240, cfgY + 180, 0xEE1A1A24);
             context.drawText(this.textRenderer, "Config: " + aim.getName(), cfgX + 10, cfgY + 10, 0xFF4682B4, true);
 
-            // Opciones visuales de configuración
-            context.drawText(this.textRenderer, "Distancia: " + String.format("%.1f", aim.aimDistance) + " blk [+/-]", cfgX + 10, cfgY + 35, 0xFFFFFFFF, false);
-            context.drawText(this.textRenderer, "Velocidad: " + String.format("%.1f", aim.aimSpeed) + "   [< / >]", cfgX + 10, cfgY + 65, 0xFFFFFFFF, false);
-            context.drawText(this.textRenderer, "FOV: " + String.format("%.1f", aim.aimFov) + "°      [[ / ]]", cfgX + 10, cfgY + 95, 0xFFFFFFFF, false);
-            context.drawText(this.textRenderer, "Solo Espada: " + (aim.onlySword ? "ON" : "OFF") + " [CLICK]", cfgX + 10, cfgY + 125, 0xFFFFFFFF, false);
-            
-            context.drawText(this.textRenderer, "Usa teclas numéricas/flechas para ajustar", cfgX + 10, cfgY + 143, 0xFFAAAAAA, false);
+            // Opción: Distancia [ - ] [ + ]
+            context.drawText(this.textRenderer, "Distancia: " + String.format("%.1f", aim.aimDistance) + " blk", cfgX + 10, cfgY + 40, 0xFFFFFFFF, false);
+            context.fill(cfgX + 150, cfgY + 36, cfgX + 175, cfgY + 54, 0xFF333344);
+            context.drawText(this.textRenderer, "-", cfgX + 161, cfgY + 41, 0xFFFFFFFF, true);
+            context.fill(cfgX + 185, cfgY + 36, cfgX + 210, cfgY + 54, 0xFF333344);
+            context.drawText(this.textRenderer, "+", cfgX + 195, cfgY + 41, 0xFFFFFFFF, true);
+
+            // Opción: Velocidad [ - ] [ + ]
+            context.drawText(this.textRenderer, "Velocidad: " + String.format("%.1f", aim.aimSpeed), cfgX + 10, cfgY + 75, 0xFFFFFFFF, false);
+            context.fill(cfgX + 150, cfgY + 71, cfgX + 175, cfgY + 89, 0xFF333344);
+            context.drawText(this.textRenderer, "-", cfgX + 161, cfgY + 76, 0xFFFFFFFF, true);
+            context.fill(cfgX + 185, cfgY + 71, cfgX + 210, cfgY + 89, 0xFF333344);
+            context.drawText(this.textRenderer, "+", cfgX + 195, cfgY + 76, 0xFFFFFFFF, true);
+
+            // Opción: FOV [ - ] [ + ]
+            context.drawText(this.textRenderer, "FOV: " + String.format("%.1f", aim.aimFov) + "°", cfgX + 10, cfgY + 110, 0xFFFFFFFF, false);
+            context.fill(cfgX + 150, cfgY + 106, cfgX + 175, cfgY + 124, 0xFF333344);
+            context.drawText(this.textRenderer, "-", cfgX + 161, cfgY + 111, 0xFFFFFFFF, true);
+            context.fill(cfgX + 185, cfgY + 106, cfgX + 210, cfgY + 124, 0xFF333344);
+            context.drawText(this.textRenderer, "+", cfgX + 195, cfgY + 111, 0xFFFFFFFF, true);
+
+            // Opción: Solo Espada [ TOGGLE ]
+            context.drawText(this.textRenderer, "Solo Espada:", cfgX + 10, cfgY + 145, 0xFFFFFFFF, false);
+            int swordColor = aim.onlySword ? 0xFF4646A0 : 0xFF333344;
+            context.fill(cfgX + 150, cfgY + 141, cfgX + 210, cfgY + 159, swordColor);
+            context.drawText(this.textRenderer, aim.onlySword ? "ON" : "OFF", cfgX + 168, cfgY + 146, 0xFFFFFFFF, true);
         }
 
         super.render(context, mouseX, mouseY, delta);
@@ -60,52 +79,68 @@ public class CiroxClientScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button != 0) { // Solo usamos Click Izquierdo (0)
+            if (button == 1) {
+                // Click derecho abre/cierra panel de config
+                int startX = 30;
+                int startY = 60;
+                for (Module m : CiroxClientMod.getModuleManager().getModules()) {
+                    if (mouseX >= startX && mouseX <= startX + 160 && mouseY >= startY && mouseY <= startY + 24) {
+                        selectedModule = (selectedModule == m) ? null : m;
+                        return true;
+                    }
+                    startY += 28;
+                }
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+
         int startX = 30;
         int startY = 60;
 
+        // Selección de módulo con clic izquierdo
         for (Module m : CiroxClientMod.getModuleManager().getModules()) {
             if (mouseX >= startX && mouseX <= startX + 160 && mouseY >= startY && mouseY <= startY + 24) {
-                if (button == 0) {
-                    // Clic izquierdo: Activa/Desactiva el módulo
-                    m.toggle();
-                    return true;
-                } else if (button == 1) {
-                    // Clic derecho: Abre el menú de configuración desplegable
-                    selectedModule = (selectedModule == m) ? null : m;
-                    return true;
-                }
+                m.toggle();
+                return true;
             }
             startY += 28;
         }
 
-        // Interacción dentro del panel de configuración de AimAssist
-        if (selectedModule instanceof AimAssistModule && mouseX >= 210 && mouseX <= 430 && mouseY >= 60 && mouseY <= 220) {
+        // Interacción por Clic Izquierdo en el Panel de Configuración de AimAssist
+        if (selectedModule instanceof AimAssistModule) {
             AimAssistModule aim = (AimAssistModule) selectedModule;
-            if (mouseY >= 120 && mouseY <= 140) {
-                aim.onlySword = !aim.onlySword; // Toggle de espada con clic
+            int cfgX = 210;
+            int cfgY = 60;
+
+            // Distancia [-] [+](Y: 36 a 54)
+            if (mouseY >= cfgY + 36 && mouseY <= cfgY + 54) {
+                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 175) aim.aimDistance = Math.max(1.0f, aim.aimDistance - 0.2f);
+                if (mouseX >= cfgX + 185 && mouseX <= cfgX + 210) aim.aimDistance = Math.min(6.0f, aim.aimDistance + 0.2f);
                 return true;
+            }
+            // Velocidad [-] [+](Y: 71 a 89)
+            if (mouseY >= cfgY + 71 && mouseY <= cfgY + 89) {
+                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 175) aim.aimSpeed = Math.max(1.0f, aim.aimSpeed - 0.5f);
+                if (mouseX >= cfgX + 185 && mouseX <= cfgX + 210) aim.aimSpeed = Math.min(20.0f, aim.aimSpeed + 0.5f);
+                return true;
+            }
+            // FOV [-] [+](Y: 106 a 124)
+            if (mouseY >= cfgY + 106 && mouseY <= cfgY + 124) {
+                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 175) aim.aimFov = Math.max(5.0f, aim.aimFov - 5.0f);
+                if (mouseX >= cfgX + 185 && mouseX <= cfgX + 210) aim.aimFov = Math.min(180.0f, aim.aimFov + 5.0f);
+                return true;
+            }
+            // Solo Espada Toggle (Y: 141 a 159)
+            if (mouseY >= cfgY + 141 && mouseY <= cfgY + 159) {
+                if (mouseX >= cfgX + 150 && mouseX <= cfgX + 210) {
+                    aim.onlySword = !aim.onlySword;
+                    return true;
+                }
             }
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // Controles rápidos para ajustar valores de AimAssist cuando está seleccionado
-        if (selectedModule instanceof AimAssistModule) {
-            AimAssistModule aim = (AimAssistModule) selectedModule;
-            if (keyCode == 262) { // Flecha derecha -> Aumenta velocidad
-                aim.aimSpeed = Math.min(20.0f, aim.aimSpeed + 0.5f);
-            } else if (keyCode == 263) { // Flecha izquierda -> Reduce velocidad
-                aim.aimSpeed = Math.max(1.0f, aim.aimSpeed - 0.5f);
-            } else if (keyCode == 265) { // Flecha arriba -> Aumenta distancia
-                aim.aimDistance = Math.min(6.0f, aim.aimDistance + 0.2f);
-            } else if (keyCode == 264) { // Flecha abajo -> Reduce distancia
-                aim.aimDistance = Math.max(2.0f, aim.aimDistance - 0.2f);
-            }
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
