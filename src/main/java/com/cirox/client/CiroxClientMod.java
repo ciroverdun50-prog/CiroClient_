@@ -1,7 +1,5 @@
 package com.cirox.client;
 
-import com.cirox.client.module.Module;
-import com.cirox.client.module.ModuleManager;
 import com.cirox.client.ui.CiroxClientScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -38,7 +36,6 @@ public class CiroxClientMod implements ClientModInitializer {
                 }
             }
 
-            // Manejo limpio de keybinds con antirrebote (debounce)
             if (client.currentScreen == null && client.getWindow() != null) {
                 long window = client.getWindow().getHandle();
                 for (Module m : moduleManager.getModules()) {
