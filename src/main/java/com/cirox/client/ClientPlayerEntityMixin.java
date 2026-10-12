@@ -1,6 +1,6 @@
 package com.cirox.client.mixin;
 
-import com.ciroxz.client.CiroxzClientMod;
+import com.cirox.client.CiroxClientMod;
 import net.minecraft.client.network.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,24 +13,22 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ClientPlayerEntityMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     private void onTick(CallbackInfo ci) {
-        if (!CiroxzClientMod.aimAssistActive) return;
+        if (!CiroxClientMod.aimAssistActive) return;
 
         ClientPlayerEntity player = (ClientPlayerEntity) (Object) this;
         net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
 
         if (client.crosshairTarget != null && client.crosshairTarget.getType() == net.minecraft.util.hit.HitResult.Type.ENTITY) {
             net.minecraft.util.hit.EntityHitResult hit = (net.minecraft.util.hit.EntityHitResult) client.crosshairTarget;
-            net.minecraft.entity.Entity target = hit.getEntity();
-
-            // Cálculo orgánico de aproximación de ángulo (Yaw/Pitch) con varianza gaussiana anti-cheat
-            double targetYaw = player.getYaw(); // Cálculo simplificado de orientación hacia el objetivo
-            float speed = CiroxzClientMod.aimSpeed;
+            
+            double targetYaw = player.getYaw();
+            float speed = CiroxClientMod.aimSpeed;
             double noise = ThreadLocalRandom.current().nextGaussian() * 0.15;
 
             float currentYaw = player.getYaw();
             float yawDiff = (float) (targetYaw - currentYaw);
             
-            if (Math.abs(yawDiff) < CiroxzClientMod.aimFov) {
+            if (Math.abs(yawDiff) < CiroxClientMod.aimFov) {
                 player.setYaw(currentYaw + (yawDiff / speed) + (float)noise);
             }
         }
