@@ -1,6 +1,6 @@
 package com.cirox.client.mixin;
 
-import com.ciroxz.client.CiroxzClientMod;
+import com.cirox.client.CiroxClientMod;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Box;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,10 +15,10 @@ public abstract class EntityMixin {
 
     @Inject(method = "getBoundingBox", at = @At("HEAD"), cancellable = true)
     private void onGetBoundingBox(CallbackInfoReturnable<Box> cir) {
-        if (CiroxzClientMod.hitboxActive && ((Object) this) instanceof net.minecraft.entity.player.PlayerEntity) {
+        if (CiroxClientMod.hitboxActive && ((Object) this) instanceof net.minecraft.entity.player.PlayerEntity) {
             Entity entity = (Entity) (Object) this;
             if (entity != net.minecraft.client.MinecraftClient.getInstance().player) {
-                double exp = CiroxzClientMod.hitboxExpansion;
+                double exp = CiroxClientMod.hitboxExpansion;
                 Box expandedBox = this.boundingBox.expand(exp, 0.0, exp);
                 cir.setReturnValue(expandedBox);
             }
