@@ -1,4 +1,4 @@
-package com.cirox.client.module.impl;
+package com.cirox.client.module;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
