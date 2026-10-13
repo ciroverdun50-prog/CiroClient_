@@ -13,7 +13,7 @@ public class TriggerbotModule extends Module {
     private int delay = 0;
 
     public TriggerbotModule() {
-        super("Triggerbot", "Waits for fall state to punish with critical hits", Category.COMBAT);
+        super("Triggerbot", "Punish mode: waits for falling state to critical hit", Category.COMBAT);
     }
 
     @Override
@@ -31,19 +31,13 @@ public class TriggerbotModule extends Module {
             Entity entity = entityHit.getEntity();
 
             if (entity instanceof LivingEntity && entity != mc.player && !entity.isSpectator()) {
-                // 1. Verifica que el cooldown de ataque esté listo
                 if (mc.player.getAttackCooldownProgress(0.5f) >= 0.9f) {
-                    
-                    // 2. Condición de crítico / Punish: 
-                    // No debe estar en el suelo (!isOnGround) y su velocidad vertical debe ser negativa (cayendo).
-                    // Esto detecta tanto cuando caes de un salto como cuando caes tras recibir un golpe/knockback.
+                    // Detecta si estás en el aire y cayendo (ideal para hacer punish y crítico tras recibir golpe o salto)
                     boolean isFalling = !mc.player.isOnGround() && mc.player.getVelocity().y < 0.0D;
 
                     if (isFalling) {
                         mc.interactionManager.attackEntity(mc.player, entity);
                         mc.player.swingHand(Hand.MAIN_HAND);
-                        
-                        // Pequeño retardo aleatorio para mantener el bypass contra Grim y Vulcan
                         delay = 1 + random.nextInt(3);
                     }
                 }
