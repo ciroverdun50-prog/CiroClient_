@@ -1,6 +1,8 @@
 package com.cirox.client;
 
-import com.cirox.client.module.*;
+import com.cirox.client.module.Module;
+import com.cirox.client.module.ModuleManager;
+import com.cirox.client.module.HUDModule;
 import com.cirox.client.ui.CiroxClientScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -57,7 +59,7 @@ public class CiroxClientMod implements ClientModInitializer {
             moduleManager.onTick();
         });
 
-        // HUD Render Callback (Arriba a la derecha)
+        HUDModule.class.getName(); // reference check
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             HUDModule hud = moduleManager.getModule(HUDModule.class);
             if (hud != null && hud.isEnabled() && net.minecraft.client.MinecraftClient.getInstance().options.hudHidden == false) {
