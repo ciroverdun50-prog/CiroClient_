@@ -11,10 +11,9 @@ import java.util.Random;
 public class TriggerbotModule extends Module {
     private final Random random = new Random();
     private int attackDelay = 0;
-    private int targetTicks = 0;
 
     public TriggerbotModule() {
-        super("Triggerbot", "Advanced Punish & Anti-Cheat Bypass (Grim/Vulcan)", Category.COMBAT);
+        super("Triggerbot", "Attacks always on cooldown with critical hit optimization", Category.COMBAT);
     }
 
     @Override
@@ -34,40 +33,18 @@ public class TriggerbotModule extends Module {
             if (entity instanceof LivingEntity && entity != mc.player && !entity.isSpectator()) {
                 double distance = mc.player.distanceTo(entity);
                 
-                // Distancia estricta para evitar baneos por Reach en Grim y Vulcan
                 if (distance <= 3.0D) {
-                    targetTicks++;
-                    
-                    // Simulación de tiempo de reacción humano (no ataca en el frame exacto 0)
-                    if (targetTicks < 1 + random.nextInt(2)) {
-                        return;
-                    }
-
-                    // Umbral de cooldown dinámico y aleatorio para burlar análisis estadísticos
+                    // Sincronización de cooldown de espada
                     float requiredCooldown = 0.90f + (random.nextFloat() * 0.08f);
                     if (mc.player.getAttackCooldownProgress(0.5f) >= requiredCooldown) {
                         
-                        // Lógica de Punish Crit: verifica que estés cayendo en el aire
-                        boolean isFalling = !mc.player.isOnGround() && mc.player.getVelocity().y < -0.01D;
-
-                        if (isFalling) {
-                            // 95% de éxito por golpe para simular la imperfección humana y eludir heurísticas
-                            if (random.nextFloat() <= 0.95f) {
-                                mc.interactionManager.attackEntity(mc.player, entity);
-                                mc.player.swingHand(Hand.MAIN_HAND);
-                            }
-                            
-                            // Retraso aleatorio variable entre ataques
-                            attackDelay = 2 + random.nextInt(4);
-                            targetTicks = 0;
-                        }
+                        mc.interactionManager.attackEntity(mc.player, entity);
+                        mc.player.swingHand(Hand.MAIN_HAND);
+                        
+                        attackDelay = 2 + random.nextInt(3);
                     }
                 }
-            } else {
-                targetTicks = 0;
             }
-        } else {
-            targetTicks = 0;
         }
     }
 }
