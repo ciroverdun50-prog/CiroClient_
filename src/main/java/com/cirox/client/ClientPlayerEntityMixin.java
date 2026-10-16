@@ -1,23 +1,24 @@
 package com.cirox.client.mixin;
 
-import com.cirox.client.module.*;
-
 import com.cirox.client.CiroxClientMod;
-import com.cirox.client.module.impl.AimAssistModule;
-import net.minecraft.client.network.ClientPlayerEntity;
+import com.cirox.client.module.PlayerESPModule;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(ClientPlayerEntity.class)
-public class ClientPlayerEntityMixin {
-
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void onTick(CallbackInfo ci) {
-        AimAssistModule aimAssist = CiroxClientMod.getModuleManager().getModule(AimAssistModule.class);
-        if (aimAssist != null && aimAssist.isEnabled()) {
-            aimAssist.onTick();
+@Mixin(Entity.class)
+public class EntityMixin {
+    @Inject(method = "isGlowing", at = @At("HEAD"), cancellable = true)
+    private void onIsGlowing(CallbackInfoReturnable<Boolean> cir) {
+        Entity entity = (Entity) (Object) this;
+        if (entity instanceof PlayerEntity && entity != net.minecraft.client.MinecraftClient.getInstance().player) {
+            PlayerESPModule esp = CiroxClientMod.getModuleManager().getModule(PlayerESPModule.class);
+            if (esp != null && esp.isEnabled()) {
+                cir.setReturnValue(true);
+            }
         }
     }
 }
