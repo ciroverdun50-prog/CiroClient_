@@ -9,8 +9,6 @@ public class ModuleManager {
     public ModuleManager() {
         modules.add(new AimAssistModule());
         modules.add(new TriggerbotModule());
-        modules.add(new HitboxModule());
-        modules.add(new JumpResetModule());
         modules.add(new PlayerESPModule());
         modules.add(new HUDModule());
     }
