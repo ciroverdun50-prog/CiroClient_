@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public class EntityMixin {
+
     @Inject(method = "isGlowing", at = @At("HEAD"), cancellable = true)
     private void onIsGlowing(CallbackInfoReturnable<Boolean> cir) {
         Entity entity = (Entity) (Object) this;
